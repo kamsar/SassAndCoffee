@@ -7,3 +7,5 @@
 4. Keep trying to run sass\_in\_one.rb and fixing up the runtime errors 
    (Sass tries to build its version info from files in the Gem - replace
     it with hardcoded strings)
+5. Find the line with "scope('VERSION')" and replace that line with the hardcoded version of sass. Something like: "numbers = "3.2.9".strip.split('.')."
+6. Find the line with "scope('VERSION_NAME')" and replace that line with the hardcoded version name. Something like: "name = "Media Mark"."
