@@ -10,7 +10,7 @@ require 'date'
 
 # This is necessary for loading Sass when Haml is required in Rails 3.
 # Once the split is complete, we can remove it.
-require File.dirname(__FILE__) + '/../sass'
+#require File.dirname(__FILE__) + '/../sass'
 require 'erb'
 require 'set'
 require 'enumerator'
@@ -1234,7 +1234,7 @@ module Sass
       numbers = "3.2.9".strip.split('.').
         map {|n| n =~ /^[0-9]+$/ ? n.to_i : n}
       #name = File.read(scope('VERSION_NAME')).strip
-      name = "Media Mark".
+      name = "Media Mark"
       @@version = {
         :major => numbers[0],
         :minor => numbers[1],
@@ -1386,12 +1386,90 @@ module Sass
   end
 end
 
-module Sass::Logger
+module Sass
+  module Logger
+    module LogLevel
+
+      def self.included(base)
+        base.extend(ClassMethods)
+      end
+      
+      module ClassMethods
+        def inherited(subclass)
+          subclass.log_levels = subclass.superclass.log_levels.dup
+        end
+
+        def log_levels
+          @log_levels ||= {}
+        end
+
+        def log_levels=(levels)
+          @log_levels = levels
+        end
+
+        def log_level?(level, min_level)
+          log_levels[level] >= log_levels[min_level]
+        end
+
+        def log_level(name, options = {})
+          if options[:prepend]
+            level = log_levels.values.min
+            level = level.nil? ? 0 : level - 1
+          else
+            level = log_levels.values.max
+            level = level.nil? ? 0 : level + 1
+          end
+          log_levels.update(name => level)
+          define_logger(name)
+        end
+
+        def define_logger(name, options = {})
+          class_eval <<-RUBY, __FILE__, __LINE__ + 1
+            def #{name}(message)
+              #{options.fetch(:to, :log)}(#{name.inspect}, message)
+            end
+          RUBY
+        end
+      end
+      
+    end
+  end
+end
+
+
+class Sass::Logger::Base
+  
+  include Sass::Logger::LogLevel
+
+  attr_accessor :log_level
+  attr_accessor :disabled
+
+  log_level :trace
+  log_level :debug
+  log_level :info
+  log_level :warn
+  log_level :error
+
+  def initialize(log_level = :debug)
+    self.log_level = log_level
+  end
+
+  def logging_level?(level)
+    !disabled && self.class.log_level?(level, log_level)
+  end
+
+  def log(level, message)
+    self._log(level, message) if logging_level?(level)
+  end
+
+  def _log(level, message)
+    Kernel::warn(message)
+  end
 
 end
 
-require "sass/logger/log_level"
-require "sass/logger/base"
+#require "sass/logger/log_level"
+#require "sass/logger/base"
 
 module Sass
 
